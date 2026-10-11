@@ -6,13 +6,13 @@ destructive wave. Three paths are compared:
   Full wave        the wave crosses every region fast, with no warning
                    (the "loop" ending).
   Talks only       no wave; the island negotiates while facing a risk of
-                   invasion every season.
+                   invasion every round.
   Circular plan    the wave moves slowly around the circle, one region at a
                    time. Each region evacuates to the island before the wave
                    arrives and goes home after it passes. The wave deters
                    invasion while it runs.
 
-The circular plan depends on one person keeping it slow. Each season there's
+The circular plan depends on one person keeping it slow. Each round there's
 a chance the leader turns rogue and speeds the wave up. Then a containment
 strike can stop them. The leader can rewrite the memories and resolve of
 Eldians (their people), which weakens most opposition. Two caveats change who
@@ -22,7 +22,7 @@ can still act:
                       rewritten, so they keep their full strength against
                       the leader.
   Friends' freedom    the leader promised not to restrict their friends, so
-                      the friends choose for themselves each season: help
+                      the friends choose for themselves each round: help
                       the evacuation, oppose the leader, or stand aside.
                       Freedom cuts both ways: they can also halt a plan that
                       was still on course.
@@ -60,25 +60,25 @@ CAVEAT_CASES = [
 ]
 REGIONS = 12
 FRIENDS = 4
-CONTAIN_SCALE = 0.5   # converts opposition strength into a per-season chance of success
+CONTAIN_SCALE = 0.5   # converts opposition strength into a per-round chance of success
 
 
 @dataclass
 class Settings:
     histories: int = 400
-    seasons: int = 48
-    pace: int = 3                  # seasons the slow wave spends on each region
+    rounds: int = 48
+    pace: int = 3                  # rounds the slow wave spends on each region
     capacity: float = 0.7          # share of a region the island can host at once
     tariff: bool = True            # regions pay up front for refugee slots
     base_trust: float = 0.0        # log-odds of agreeing to evacuate, before any returns
     return_trust: float = 2.5      # added log-odds once every earlier region came home
-    rogue_hazard: float = 0.01     # chance per season the leader turns rogue
+    rogue_hazard: float = 0.01     # chance per round the leader turns rogue
     memory_reach: float = 0.9      # share of Eldian resolve the leader can rewrite
     ackerman_immune: bool = True
     friends_free: bool = True
-    objection: float = 0.06        # chance per season a free friend objects to a plan on course
-    invasion_hazard: float = 0.03  # chance per season the island is invaded, with no wave running
-    settlement: float = 0.02       # chance per season talks settle it, with no wave running
+    objection: float = 0.06        # chance per round a free friend objects to a plan on course
+    invasion_hazard: float = 0.03  # chance per round the island is invaded, with no wave running
+    settlement: float = 0.02       # chance per round talks settle it, with no wave running
     yeagerist_strength: float = 0.3   # Yeagerists' share of the island's armed force; 0 removes them
     yeagerist_hostility: float = 1.0  # how fast hosting foreigners builds their grievance
     rewrite_yeagerists: bool = False  # a leader on course rewrites Yeagerist resolve (an ethical cost)
@@ -90,7 +90,7 @@ def _sigmoid(x):
 
 
 def _opposition(s, rng, friends_oppose_p):
-    """Containment strength against the leader this season, and who took part."""
+    """Containment strength against the leader this round, and who took part."""
     eldian_left = 1 - s.memory_reach
     allies = 0.15                                  # non-Eldian allies, untouched by memory
     ackerman = 0.35 * (1.0 if s.ackerman_immune else eldian_left)
@@ -104,7 +104,7 @@ def _opposition(s, rng, friends_oppose_p):
 
 
 def _yeagerist_force(s, rogue):
-    """Yeagerist force that acts this season. A leader on course may rewrite their resolve; a rogue one won't."""
+    """Yeagerist force that acts this round. A leader on course may rewrite their resolve; a rogue one won't."""
     y = s.yeagerist_strength
     if s.rewrite_yeagerists and not rogue:
         y *= 1 - s.memory_reach
@@ -136,11 +136,11 @@ def run_history(s: Settings, strategy: str, rng: np.random.Generator, hid: int):
     # Yeagerist draws use their own stream, so with strength 0 every other draw matches the model without them.
     yrng = np.random.default_rng([s.seed, hid, 2])
     grievance = 0.0
-    coup_season = None
+    coup_round = None
     harassed_lost = 0.0
     hosting = None                                 # region whose evacuees are on the island now
 
-    for t in range(1, s.seasons + 1):
+    for t in range(1, s.rounds + 1):
         if island_fell:
             break
         # Yeagerists respond.
@@ -164,11 +164,11 @@ def run_history(s: Settings, strategy: str, rng: np.random.Generator, hid: int):
                 harassed_lost += hit
                 events.append((t, "Yeagerists harassed evacuees" + (f" ({guards} friends protected them)" if guards else "")))
             # A coup that forces a full wave.
-            if not rogue and strategy != "Full wave" and coup_season is None:
+            if not rogue and strategy != "Full wave" and coup_round is None:
                 if yrng.random() < 0.25 * y * _sigmoid(2 * (grievance - 3)):
                     defenders = int((yrng.random(FRIENDS) < 0.6).sum()) if s.friends_free else FRIENDS
                     if yrng.random() < _sigmoid(4 * (y - 0.15)) * (1 - 0.15 * defenders):
-                        on_plan, rogue, rogue_since, coup_season = False, True, t, t
+                        on_plan, rogue, rogue_since, coup_round = False, True, t, t
                         events.append((t, "Yeagerist coup forced a full wave"))
                     else:
                         events.append((t, f"Yeagerist coup failed ({defenders} friends defended)"))
@@ -191,7 +191,7 @@ def run_history(s: Settings, strategy: str, rng: np.random.Generator, hid: int):
             hosting = None                         # evacuees go home or scatter once the plan stops
         # The wave.
         if rogue:
-            for _ in range(2):                     # fast: two regions a season, no warning
+            for _ in range(2):                     # fast: two regions a round, no warning
                 if next_region < REGIONS:
                     r = order[next_region]
                     lost[r] += pop[r] * 0.7          # no warning, no evacuation
@@ -240,14 +240,14 @@ def run_history(s: Settings, strategy: str, rng: np.random.Generator, hid: int):
     summary = {
         "history": hid, "strategy": strategy, "world_lost_pct": round(lost.sum(), 3),
         "regions_flattened": int(flattened.sum()), "island_fell": island_fell,
-        "turned_rogue": rogue_since is not None and strategy == "Circular plan" and coup_season is None,
+        "turned_rogue": rogue_since is not None and strategy == "Circular plan" and coup_round is None,
         "wave_forced": rogue_since is not None and strategy != "Full wave",
-        "contained_season": contained_at,
-        "seasons_to_contain": (contained_at - rogue_since + 1) if contained_at and rogue_since else None,
+        "contained_round": contained_at,
+        "rounds_to_contain": (contained_at - rogue_since + 1) if contained_at and rogue_since else None,
         "halted_by_friends": halted_by_friends,
         "completed": strategy == "Circular plan" and next_region == REGIONS and rogue_since is None
                      and not halted_by_friends,
-        "yeagerist_coup": coup_season is not None, "coup_season": coup_season,
+        "yeagerist_coup": coup_round is not None, "coup_round": coup_round,
         "lost_to_harassment_pct": round(harassed_lost, 3), "yeagerist_grievance_end": round(grievance, 3),
         "lost_pct_paid_regions": None if np.isnan(lost_paid) else round(lost_paid, 3),
         "lost_pct_unpaid_regions": None if np.isnan(lost_unpaid) else round(lost_unpaid, 3),
@@ -290,7 +290,7 @@ def caveat_grid(s: Settings = Settings()) -> pd.DataFrame:
         out.append({
             "case": label, "ackerman_immune": ack, "friends_free": free,
             "turned": len(turned),
-            "stopped_within_2": (turned["seasons_to_contain"].fillna(99) <= 2).mean() if len(turned) else np.nan,
+            "stopped_within_2": (turned["rounds_to_contain"].fillna(99) <= 2).mean() if len(turned) else np.nan,
             "lost_when_turned": turned["world_lost_pct"].mean() if len(turned) else np.nan,
             "halted_on_course": df["halted_by_friends"].mean(),
             "world_lost": df["world_lost_pct"].mean(),

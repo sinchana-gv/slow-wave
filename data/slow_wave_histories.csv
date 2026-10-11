@@ -1,4 +1,4 @@
-history,strategy,world_lost_pct,regions_flattened,island_fell,turned_rogue,wave_forced,contained_season,seasons_to_contain,halted_by_friends,completed,yeagerist_coup,coup_season,lost_to_harassment_pct,yeagerist_grievance_end,lost_pct_paid_regions,lost_pct_unpaid_regions
+history,strategy,world_lost_pct,regions_flattened,island_fell,turned_rogue,wave_forced,contained_round,rounds_to_contain,halted_by_friends,completed,yeagerist_coup,coup_round,lost_to_harassment_pct,yeagerist_grievance_end,lost_pct_paid_regions,lost_pct_unpaid_regions
 1,Full wave,57.822,10,True,False,False,5.0,5.0,False,False,False,,0.0,0.0,70.0,70.0
 2,Full wave,70.0,12,False,False,False,7.0,7.0,False,False,False,,0.0,0.0,70.0,70.0
 3,Full wave,37.652,6,True,False,False,3.0,3.0,False,False,False,,0.0,0.0,70.0,70.0

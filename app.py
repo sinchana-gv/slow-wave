@@ -26,21 +26,21 @@ with st.sidebar:
     st.header("Assumptions")
     st.caption("Every number here is invented. Move them and watch what changes.")
     st.subheader("The circular plan")
-    pace = st.slider("Seasons the wave spends on each region", 1, 4, 3)
+    pace = st.slider("Rounds the wave spends on each region", 1, 4, 3)
     capacity = st.slider("Share of a region the island can host", 0.2, 1.0, 0.7, 0.05)
     tariff = st.toggle("Regions pay a tariff for refugee slots", value=True,
                        help="Tariffs fund 25% more room, but regions that don't pay get only 30% of their slots.")
     return_trust = st.slider("Trust gained from seeing evacuees go home", 0.0, 4.0, 2.5, 0.25,
                              help="The built-in circular effect. Set to 0 for the honest baseline.")
     st.subheader("The leader")
-    rogue_hazard = st.slider("Chance per season the leader turns rogue", 0.0, 0.05, 0.01, 0.005, format="%.3f")
+    rogue_hazard = st.slider("Chance per round the leader turns rogue", 0.0, 0.05, 0.01, 0.005, format="%.3f")
     memory_reach = st.slider("Share of Eldian resolve the leader can rewrite", 0.0, 1.0, 0.9, 0.05)
     st.subheader("The two caveats")
     ackerman = st.toggle("Ackerman immunity", value=True,
                          help="Ackermans' memories can't be rewritten, so they can still act against the leader.")
     friends = st.toggle("Friends' freedom", value=True,
-                        help="The leader doesn't restrict their friends; each season they choose for themselves.")
-    objection = st.slider("Chance per season a free friend objects to a plan on course", 0.0, 0.2, 0.06, 0.01,
+                        help="The leader doesn't restrict their friends; each round they choose for themselves.")
+    objection = st.slider("Chance per round a free friend objects to a plan on course", 0.0, 0.2, 0.06, 0.01,
                           disabled=not friends)
     st.subheader("The Yeagerists")
     yeag = st.slider("Yeagerists' share of the island's armed force", 0.0, 0.6, 0.3, 0.05,
@@ -50,9 +50,9 @@ with st.sidebar:
                         help="Yeagerists are Eldian, so the leader can do this. It means controlling their "
                              "own people's minds, which is why it's off by default.")
     st.subheader("The world")
-    invasion = st.slider("Chance per season the island is invaded, with no wave running", 0.0, 0.1, 0.03, 0.005,
+    invasion = st.slider("Chance per round the island is invaded, with no wave running", 0.0, 0.1, 0.03, 0.005,
                          format="%.3f")
-    settlement = st.slider("Chance per season talks settle it, with no wave running", 0.0, 0.1, 0.02, 0.005,
+    settlement = st.slider("Chance per round talks settle it, with no wave running", 0.0, 0.1, 0.02, 0.005,
                            format="%.3f")
     st.subheader("Run")
     histories = st.select_slider("Histories per path", [100, 200, 400], value=200)
@@ -136,12 +136,12 @@ st.subheader("The two caveats")
 st.markdown(
     "The leader can rewrite the memories and resolve of Eldians, which leaves most opponents unable to act. "
     "**Ackerman immunity** keeps Ackermans, who are Eldian, out of that reach. **Friends' freedom** means the "
-    "leader never restricts their friends, so each season the friends decide for themselves. Below, the circular "
+    "leader never restricts their friends, so each round the friends decide for themselves. Below, the circular "
     "plan is replayed on the same worlds with each caveat on and off, whatever the toggles say."
 )
 g = grid.copy()
 long = pd.concat([
-    g.assign(measure="Rogue turns stopped within 2 seasons", value=g["stopped_within_2"]),
+    g.assign(measure="Rogue turns stopped within 2 rounds", value=g["stopped_within_2"]),
     g.assign(measure="Plans halted while still on course", value=g["halted_on_course"]),
 ])
 cases = list(g["case"])
@@ -149,13 +149,13 @@ gchart = alt.Chart(long).mark_bar().encode(
     y=alt.Y("case:N", sort=cases, title=None),
     x=alt.X("value:Q", title=None, axis=alt.Axis(format="%"), scale=alt.Scale(domain=[0, 1])),
     color=alt.Color("measure:N", legend=None, scale=alt.Scale(
-        domain=["Rogue turns stopped within 2 seasons", "Plans halted while still on course"],
+        domain=["Rogue turns stopped within 2 rounds", "Plans halted while still on course"],
         range=["#009E73", "#B4562A"])),
     tooltip=["case", "measure", alt.Tooltip("value:Q", format=".0%")],
 )
 gtext = gchart.mark_text(align="left", dx=4, color="#222").encode(text=alt.Text("value:Q", format=".0%"))
 c1, c2 = st.columns(2)
-for col, m in zip([c1, c2], ["Rogue turns stopped within 2 seasons", "Plans halted while still on course"]):
+for col, m in zip([c1, c2], ["Rogue turns stopped within 2 rounds", "Plans halted while still on course"]):
     col.altair_chart((gchart + gtext).transform_filter(alt.datum.measure == m).properties(height=200, title=m),
                      width="stretch", theme=None)
 st.caption(
@@ -166,7 +166,7 @@ st.caption(
 
 st.subheader("How the Yeagerists respond")
 st.markdown(
-    "The Yeagerists want the island safe and don't want foreigners on it. Every season the island shelters "
+    "The Yeagerists want the island safe and don't want foreigners on it. Every round the island shelters "
     "evacuees, their grievance grows. As it does, they may **harass evacuees**, **press the leader to speed the wave "
     "up**, or **stage a coup** that forces a full wave. If the leader turns rogue, they **shield** them from "
     "containment. They are Eldian, so a leader on course could simply rewrite their resolve. Below, the same worlds "
@@ -253,28 +253,28 @@ ev_cols = st.columns(3)
 for col, name in zip(ev_cols, STRATEGIES):
     col.markdown(f"**{name}**")
     events = stories.get((name, pick), [])
-    col.markdown("\n".join(f"- Season {t}: {e}" for t, e in events) or "- Nothing decisive within 48 seasons")
+    col.markdown("\n".join(f"- Round {t}: {e}" for t, e in events) or "- Nothing decisive within 48 rounds")
 
 with st.expander("How the simulation works"):
     st.markdown(f"""
-- **The world**: 12 regions of random size and wealth around an island, over 48 seasons. Each history is replayed
+- **The world**: 12 regions of random size and wealth around an island, over 48 rounds. Each history is replayed
   under all three paths with the same seed, so differences come from the path, not the world.
-- **Full wave**: the wave crosses two regions a season with no warning, and 70% of the people in its path are lost.
-- **Talks only**: no wave. Each season the island faces a {invasion:.1%} chance of invasion and a {settlement:.1%}
+- **Full wave**: the wave crosses two regions a round with no warning, and 70% of the people in its path are lost.
+- **Talks only**: no wave. Each round the island faces a {invasion:.1%} chance of invasion and a {settlement:.1%}
   chance that talks settle things.
-- **Circular plan**: the wave spends {pace} season(s) on each region. Before it arrives, the region evacuates to the
+- **Circular plan**: the wave spends {pace} round(s) on each region. Before it arrives, the region evacuates to the
   island, limited by willingness and by room ({capacity:.0%} of a region, more with tariffs). People who stay face the
   same 70% loss. Evacuees go home after the wave passes, and later regions trust the plan more for each earlier
   region that came home. While a wave runs, invasion is five times less likely.
-- **The leader**: each season on course there's a {rogue_hazard:.1%} chance they turn rogue and the wave speeds up.
-  Containment then has a chance each season that grows with the opposition's strength: non-Eldian allies (never
+- **The leader**: each round on course there's a {rogue_hazard:.1%} chance they turn rogue and the wave speeds up.
+  Containment then has a chance each round that grows with the opposition's strength: non-Eldian allies (never
   affected by memory), Ackermans (full strength if immune, otherwise reduced like any Eldian), other Eldians
   (reduced by memory reach) and any free friends who choose to act.
-- **Free friends** each decide every season. On a rogue leader, each acts with 70% chance. On a plan still on course,
+- **Free friends** each decide every round. On a rogue leader, each acts with 70% chance. On a plan still on course,
   each objects with the chance you set (1.5 times as often with tariffs), and two or more objecting friends can halt
-  it. Half of them help with the evacuation each season, adding a little room.
+  it. Half of them help with the evacuation each round, adding a little room.
 - After an unwarned wave or a containment strike, invasion becomes 1.5 times as likely as before.
-- **Yeagerists** ({yeag:.0%} of the armed force) build grievance each season the island hosts evacuees, more slowly
+- **Yeagerists** ({yeag:.0%} of the armed force) build grievance each round the island hosts evacuees, more slowly
   while talks drag on, and lose it while a full wave runs. As grievance rises they may harass the region sheltering
   on the island (each free friend has an even chance of stepping in to protect them), add to the chance the leader
   turns rogue, or attempt a coup. A coup forces a full wave; it's less likely to succeed for every friend who
